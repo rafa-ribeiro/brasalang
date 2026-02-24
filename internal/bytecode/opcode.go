@@ -1,0 +1,28 @@
+package bytecode
+
+type OpCode byte
+
+const (
+	OP_CONST OpCode = iota
+	OP_ADD
+	OP_SUB
+	OP_MUL
+	OP_DIV
+	OP_TRUE
+	OP_FALSE
+	OP_POP
+
+	OP_EQUAL
+	OP_NOT_EQUAL
+	OP_GREATER
+	OP_LESS
+	OP_GREATER_EQUAL
+	OP_LESS_EQUAL
+
+	OP_NOT
+	OP_AND
+	OP_OR
+
+	OP_JUMP
+	OP_JUMP_IF_FALSE
+)
