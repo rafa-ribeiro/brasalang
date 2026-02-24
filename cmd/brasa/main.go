@@ -75,9 +75,11 @@ func main() {
 	machine := vm.New()
 
 	// Print the bytecode
-	fmt.Println(chunk.Code)
+	// fmt.Println(chunk.Code)
 
-	fmt.Println(chunk.Constants)
+	// fmt.Println(chunk.Constants)
+
+	fmt.Println(chunk.Disassemble())
 
 	// RUN code
 	machine.Run(chunk)
