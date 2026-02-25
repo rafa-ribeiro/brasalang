@@ -2,6 +2,8 @@ package bytecode
 
 import "github.com/rafa-ribeiro/brasalang/internal/value"
 
+const JumpInstructionOperandWidth int = 2
+
 type Chunk struct {
 	Code      []byte
 	Constants []value.Value
@@ -34,11 +36,11 @@ func (c *Chunk) EmitJump(op OpCode) int {
 	c.WriteByte(0)
 	c.WriteByte(0)
 
-	return len(c.Code) - 2 // posição do primeiro byte do offset
+	return len(c.Code) - JumpInstructionOperandWidth // posição do primeiro byte do offset
 }
 
 func (c *Chunk) PatchJump(offsetPos int) {
-	jump := len(c.Code) - (offsetPos + 2)
+	jump := len(c.Code) - (offsetPos + JumpInstructionOperandWidth)
 
 	c.Code[offsetPos] = byte(jump >> 8)
 	c.Code[offsetPos+1] = byte(jump & 0xff)

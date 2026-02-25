@@ -39,8 +39,8 @@ func (c *Chunk) Disassemble() string {
 			}
 
 			offset := (uint16(c.Code[i]) << 8) | uint16(c.Code[i+1])
-			target := i + 2 + int(offset)
-			i += 2
+			target := i + JumpInstructionOperandWidth + int(offset)
+			i += JumpInstructionOperandWidth
 			fmt.Fprintf(&out, "%d -> %04d\n", offset, target)
 
 		default:
