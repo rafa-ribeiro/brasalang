@@ -2,89 +2,44 @@ package main
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/rafa-ribeiro/brasalang/internal/bytecode"
-	"github.com/rafa-ribeiro/brasalang/internal/value"
+	"github.com/rafa-ribeiro/brasalang/internal/compiler"
+	"github.com/rafa-ribeiro/brasalang/internal/parser"
 	"github.com/rafa-ribeiro/brasalang/internal/vm"
 )
 
 func main() {
 	fmt.Println("Brasa VM starting...")
 
-	chunk := &bytecode.Chunk{}
+	// sourceCode := "(1 + 2) * 3 == 9"
 
-	// Testing Binary operators
+	sourceCode := `
+	a int = 2 * 5 
+	b int = 13 - 3
+	a == b
+	`
 
-	// Add constants
-	// index2 := chunk.AddConstant(value.NewInt(2))
-	// index3 := chunk.AddConstant(value.NewInt(1))
+	p := parser.NewFromSource(sourceCode)
+	program := p.ParseProgram()
 
-	// // Write to bytecode
-	// chunk.Write(bytecode.OP_CONST)
-	// chunk.Write(bytecode.OpCode(index2))
+	if len(p.Errors()) > 0 {
+		log.Fatalf("parse errors: %v", p.Errors())
+	}
 
-	// chunk.Write(bytecode.OP_CONST)
-	// chunk.Write(bytecode.OpCode(index3))
+	c := compiler.New()
+	chunk, err := c.Compile(program)
+	if err != nil {
+		log.Fatalf("compile error: %v", err)
+	}
 
-	// chunk.Write(bytecode.OP_GREATER_EQUAL)
-
-	// Testing NOT operator
-	// indexTrue := chunk.AddConstant(value.NewBool(false))
-
-	// chunk.Write(bytecode.OP_CONST)
-	// chunk.Write(bytecode.OpCode(indexTrue))
-	// chunk.Write(bytecode.OP_NOT)
-
-	// Testing boolean operators
-	// trueValue := chunk.AddConstant(value.NewBool(true))
-	// falseValue := chunk.AddConstant(value.NewBool(false))
-
-	// chunk.Write(bytecode.OP_CONST)
-	// chunk.Write(bytecode.OpCode(falseValue))
-
-	// chunk.Write(bytecode.OP_CONST)
-	// chunk.Write(bytecode.OpCode(trueValue))
-
-	// chunk.Write(bytecode.OP_OR)
-
-	// Testing If statement
-
-	// condição
-	chunk.WriteConst(value.NewBool(false))
-
-	// JUMP_IF_FALSE
-	jumpIfFalsePos := chunk.EmitJump(bytecode.OP_JUMP_IF_FALSE)
-
-	// THEN
-	chunk.WriteConst(value.NewInt(1))
-	chunk.Write(bytecode.OP_POP)
-
-	// JUMP para pular o ELSE
-	jumpPos := chunk.EmitJump(bytecode.OP_JUMP)
-
-	// ELSE começa aqui
-	chunk.PatchJump(jumpIfFalsePos)
-
-	chunk.WriteConst(value.NewInt(2))
-	chunk.Write(bytecode.OP_POP)
-
-	// fim
-	chunk.PatchJump(jumpPos)
-
-	// Create the VM
-	machine := vm.New()
-
-	// Print the bytecode
-	// fmt.Println(chunk.Code)
-
-	// fmt.Println(chunk.Constants)
-
+	fmt.Println("Bytecode:")
 	fmt.Println(chunk.Disassemble())
 
-	// RUN code
+	machine := vm.New()
 	machine.Run(chunk)
 
-	// Print the Top of the stack
-	result := machine.StackTop()
-	fmt.Println("Result: ", result)
+	fmt.Printf("Source: %s\n", sourceCode)
+	fmt.Printf("Result: %s\n", machine.StackTop())
+
 }

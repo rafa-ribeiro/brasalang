@@ -31,7 +31,7 @@ func (node *IntLiteral) Pos() token.Position {
 	return node.Token.Position
 }
 
-func (node *IntLiteral) exprNode()
+func (node *IntLiteral) exprNode() {}
 
 type BoolLiteral struct {
 	Token token.Token
@@ -42,7 +42,7 @@ func (node *BoolLiteral) Pos() token.Position {
 	return node.Token.Position
 }
 
-func (node *BoolLiteral) exprNode()
+func (node *BoolLiteral) exprNode() {}
 
 type Identifier struct {
 	Token token.Token
@@ -53,7 +53,7 @@ func (node *Identifier) Pos() token.Position {
 	return node.Token.Position
 }
 
-func (node *Identifier) exprNode()
+func (node *Identifier) exprNode() {}
 
 type UnaryExpr struct {
 	Operator token.Token
@@ -64,7 +64,7 @@ func (node *UnaryExpr) Pos() token.Position {
 	return node.Operator.Position
 }
 
-func (node *UnaryExpr) exprNode()
+func (node *UnaryExpr) exprNode() {}
 
 type BinaryExpr struct {
 	Left     Expr
@@ -76,7 +76,7 @@ func (node *BinaryExpr) Pos() token.Position {
 	return node.Operator.Position
 }
 
-func (node *BinaryExpr) exprNode()
+func (node *BinaryExpr) exprNode() {}
 
 type ExprStmt struct {
 	Expression Expr
@@ -86,4 +86,28 @@ type ExprStmt struct {
 func (node *ExprStmt) Pos() token.Position {
 	return node.Expression.Pos()
 }
-func (node *ExprStmt) stmtNode()
+
+func (node *ExprStmt) stmtNode() {}
+
+type VarDeclStmt struct {
+	Name        token.Token
+	TypeName    token.Token
+	Initializer Expr
+}
+
+func (node *VarDeclStmt) Pos() token.Position {
+	return node.Name.Position
+}
+
+func (node *VarDeclStmt) stmtNode() {}
+
+type BlockStmt struct {
+	LBrace     token.Token
+	Statements []Stmt
+}
+
+func (node *BlockStmt) Pos() token.Position {
+	return node.LBrace.Position
+}
+
+func (node *BlockStmt) stmtNode() {}

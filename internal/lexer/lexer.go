@@ -1,3 +1,8 @@
+//Package lexer implements a lexer for the Brasa programming language.
+// It takes an input string and produces a stream of tokens that can be consumed by the parser.
+// The lexer handles basic token types such as identifiers, integers, operators, and punctuation.
+// It also keeps track of the current position in the source code for error reporting purposes.
+
 package lexer
 
 import (
@@ -13,10 +18,12 @@ type Lexer struct {
 	col  int
 }
 
+// New creates a new Lexer instance with the given input string.
 func New(input string) *Lexer {
 	return &Lexer{src: []rune(input), line: 1, col: 1}
 }
 
+// NextToken iterates through the input source mapping the characters to the corresponding token types and returns the next token in the stream.
 func (l *Lexer) NextToken() token.Token {
 	l.skipWhitespace()
 	start := token.Position{Line: l.line, Column: l.col}
@@ -28,6 +35,8 @@ func (l *Lexer) NextToken() token.Token {
 	ch := l.advance()
 
 	switch ch {
+	case '\n':
+		return token.Token{Type: token.NEWLINE, Lexeme: "\\n", Position: start}
 	case '(':
 		return token.Token{Type: token.LPAREN, Lexeme: "(", Position: start}
 	case ')':
@@ -36,8 +45,6 @@ func (l *Lexer) NextToken() token.Token {
 		return token.Token{Type: token.LBRACE, Lexeme: "{", Position: start}
 	case '}':
 		return token.Token{Type: token.RBRACE, Lexeme: "}", Position: start}
-	case ';':
-		return token.Token{Type: token.SEMICOLON, Lexeme: ";", Position: start}
 	case '+':
 		return token.Token{Type: token.PLUS, Lexeme: "+", Position: start}
 	case '-':
@@ -98,6 +105,7 @@ func (l *Lexer) NextToken() token.Token {
 	return token.Token{Type: token.ILLEGAL, Lexeme: string(ch), Position: start}
 }
 
+// Tokens returns a slice of all tokens in the input source by repeatedly calling NextToken until EOF is reached.
 func (l *Lexer) Tokens() []token.Token {
 	var out []token.Token
 	for {
@@ -113,16 +121,11 @@ func (l *Lexer) Tokens() []token.Token {
 func (l *Lexer) skipWhitespace() {
 	for !l.isAtEnd() {
 		ch := l.peek()
-		// checks for whitespace
 		if ch == ' ' || ch == '\t' || ch == '\r' {
 			l.advance()
 			continue
 		}
-		// checks for newline
-		if ch == '\n' {
-			l.advance()
-			continue
-		}
+
 		return
 	}
 }

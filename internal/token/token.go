@@ -6,6 +6,7 @@ const (
 	// Special
 	EOF     Type = "EOF"
 	ILLEGAL Type = "ILLEGAL"
+	NEWLINE Type = "NEWLINE"
 
 	// Literals
 	IDENT Type = "IDENT"
@@ -18,11 +19,10 @@ const (
 	ELSE  Type = "ELSE"
 
 	// Delimiters
-	LPAREN    Type = "LPAREN"
-	RPAREN    Type = "RPAREN"
-	LBRACE    Type = "LBRACE"
-	RBRACE    Type = "RBRACE"
-	SEMICOLON Type = "SEMICOLON"
+	LPAREN Type = "LPAREN"
+	RPAREN Type = "RPAREN"
+	LBRACE Type = "LBRACE"
+	RBRACE Type = "RBRACE"
 
 	// Operators
 	PLUS        Type = "PLUS"

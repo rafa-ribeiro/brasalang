@@ -7,23 +7,21 @@ import (
 )
 
 func TestTokensBasicProgram(t *testing.T) {
-	l := New("if (true) { 10; } else { 20; }")
+	l := New("x int = 10\n{\n  true\n}\n")
 	got := l.Tokens()
 
 	wantTypes := []token.Type{
-		token.IF,
-		token.LPAREN,
+		token.IDENT,
+		token.IDENT,
+		token.EQUAL,
+		token.INT,
+		token.NEWLINE,
+		token.LBRACE,
+		token.NEWLINE,
 		token.TRUE,
-		token.RPAREN,
-		token.LBRACE,
-		token.INT,
-		token.SEMICOLON,
+		token.NEWLINE,
 		token.RBRACE,
-		token.ELSE,
-		token.LBRACE,
-		token.INT,
-		token.SEMICOLON,
-		token.RBRACE,
+		token.NEWLINE,
 		token.EOF,
 	}
 
