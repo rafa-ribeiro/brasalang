@@ -16,8 +16,9 @@ func main() {
 
 	sourceCode := `
 	a int = 2 * 5 
-	b int = 13 - 3
-	a == b
+	b int = 4 - 3
+	c int = ((a + b) * 3 - 4) * 2
+	c
 	`
 
 	p := parser.NewFromSource(sourceCode)

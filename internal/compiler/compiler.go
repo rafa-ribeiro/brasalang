@@ -9,38 +9,63 @@ import (
 	"github.com/rafa-ribeiro/brasalang/internal/value"
 )
 
-type Compiler struct{}
-
-func New() *Compiler {
-	return &Compiler{}
+type Compiler struct {
+	globals map[string]byte
 }
 
-func (C *Compiler) Compile(program *ast.Program) (*bytecode.Chunk, error) {
+func New() *Compiler {
+	return &Compiler{globals: map[string]byte{}}
+}
+
+func (c *Compiler) Compile(program *ast.Program) (*bytecode.Chunk, error) {
 	chunk := &bytecode.Chunk{}
 
 	for i, stmt := range program.Statements {
-		exprStmt, ok := stmt.(*ast.ExprStmt)
-		if !ok {
-			return nil, fmt.Errorf("unsupported statement type %T", stmt)
-		}
 
-		if err := C.emitExpr(chunk, exprStmt.Expression); err != nil {
+		if err := c.emitStmt(chunk, stmt); err != nil {
 			return nil, err
 		}
 
 		if i < len(program.Statements)-1 {
-			chunk.Write(bytecode.OP_POP)
+			if _, ok := stmt.(*ast.ExprStmt); ok {
+				chunk.Write(bytecode.OP_POP)
+			}
 		}
 	}
 
 	return chunk, nil
 }
 
-func (C *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr) error {
+func (c *Compiler) emitStmt(chunk *bytecode.Chunk, stmt ast.Stmt) error {
+	switch node := stmt.(type) {
+	case *ast.ExprStmt:
+		return c.emitExpr(chunk, node.Expression)
+	case *ast.VarDeclStmt:
+		if _, exists := c.globals[node.Name.Lexeme]; exists {
+			return fmt.Errorf("variable %q already declared", node.Name.Lexeme)
+		}
+
+		if err := c.emitExpr(chunk, node.Initializer); err != nil {
+			return err
+		}
+
+		slot := byte(len(c.globals))
+		c.globals[node.Name.Lexeme] = slot
+		chunk.Write(bytecode.OP_DEFINE_GLOBAL)
+		chunk.WriteByte(slot)
+		return nil
+	default:
+		return fmt.Errorf("unsupported statement type %T", stmt)
+	}
+
+}
+
+func (c *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr) error {
 	switch node := expr.(type) {
 	case *ast.IntLiteral:
 		chunk.WriteConst(value.NewInt(node.Value))
 		return nil
+
 	case *ast.BoolLiteral:
 		if node.Value {
 			chunk.Write(bytecode.OP_TRUE)
@@ -48,18 +73,26 @@ func (C *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr) error {
 			chunk.Write(bytecode.OP_FALSE)
 		}
 		return nil
+
 	case *ast.Identifier:
-		return fmt.Errorf("identifier %q is not supported yet", node.Name)
+		slot, ok := c.globals[node.Name]
+		if !ok {
+			return fmt.Errorf("identifier %q is not declared", node.Name)
+		}
+		chunk.Write(bytecode.OP_GET_GLOBAL)
+		chunk.WriteByte(slot)
+		return nil
+
 	case *ast.UnaryExpr:
 		switch node.Operator.Type {
 		case token.NOT:
-			if err := C.emitExpr(chunk, node.Right); err != nil {
+			if err := c.emitExpr(chunk, node.Right); err != nil {
 				return err
 			}
 			chunk.Write(bytecode.OP_NOT)
 		case token.MINUS:
 			chunk.WriteConst(value.NewInt(0))
-			if err := C.emitExpr(chunk, node.Right); err != nil {
+			if err := c.emitExpr(chunk, node.Right); err != nil {
 				return err
 			}
 			chunk.Write(bytecode.OP_SUB)
@@ -67,11 +100,12 @@ func (C *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr) error {
 			return fmt.Errorf("unsupported unary operator %s", node.Operator.Type)
 		}
 		return nil
+
 	case *ast.BinaryExpr:
-		if err := C.emitExpr(chunk, node.Left); err != nil {
+		if err := c.emitExpr(chunk, node.Left); err != nil {
 			return err
 		}
-		if err := C.emitExpr(chunk, node.Right); err != nil {
+		if err := c.emitExpr(chunk, node.Right); err != nil {
 			return err
 		}
 
@@ -81,6 +115,7 @@ func (C *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr) error {
 		}
 		chunk.Write(op)
 		return nil
+
 	default:
 		return fmt.Errorf("unsupported expression type %T", expr)
 	}

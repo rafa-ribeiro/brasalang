@@ -18,19 +18,24 @@ func (c *Chunk) Disassemble() string {
 		i++
 
 		switch op {
-		case OP_CONST:
+		case OP_CONST, OP_DEFINE_GLOBAL, OP_GET_GLOBAL:
 			if i >= len(c.Code) {
-				out.WriteString("<missing const index>\n")
+				out.WriteString("<missing operand>\n")
 				continue
 			}
 			idx := int(c.Code[i])
 			i++
 
-			if idx < 0 || idx >= len(c.Constants) {
-				fmt.Fprintf(&out, "%d <invalid const index>\n", idx)
+			if op == OP_CONST {
+				if idx < 0 || idx >= len(c.Constants) {
+					fmt.Fprintf(&out, "%d <invalid const index>\n", idx)
+					continue
+				}
+				fmt.Fprintf(&out, "%d (%s)\n", idx, c.Constants[idx])
 				continue
 			}
-			fmt.Fprintf(&out, "%d (%s)\n", idx, c.Constants[idx])
+
+			fmt.Fprintf(&out, "%d\n", idx)
 
 		case OP_JUMP, OP_JUMP_IF_FALSE:
 			if i+1 >= len(c.Code) {

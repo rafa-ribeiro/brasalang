@@ -10,9 +10,10 @@ import (
 // chunck -> Holds the program (or block of code) in execution
 
 type VM struct {
-	stack Stack
-	ip    int // Instruction Pointer
-	chunk *bytecode.Chunk
+	stack   Stack
+	ip      int // Instruction Pointer
+	chunk   *bytecode.Chunk
+	globals []value.Value
 }
 
 func New() *VM {
@@ -82,6 +83,12 @@ func (vm *VM) Run(chunk *bytecode.Chunk) {
 
 		case bytecode.OP_JUMP_IF_FALSE:
 			vm.opJumpIfFalse()
+
+		case bytecode.OP_DEFINE_GLOBAL:
+			vm.opDefineGlobal()
+
+		case bytecode.OP_GET_GLOBAL:
+			vm.opGetGlobal()
 
 		case bytecode.OP_POP:
 			vm.stack.Pop()
@@ -160,6 +167,28 @@ func (vm *VM) opJumpIfFalse() {
 	if !condition.B {
 		vm.ip += int(offset)
 	}
+}
+
+func (vm *VM) opDefineGlobal() {
+	slot := int(vm.chunk.Code[vm.ip])
+	vm.ip++
+
+	for len(vm.globals) <= slot {
+		vm.globals = append(vm.globals, value.Value{})
+	}
+
+	vm.globals[slot] = vm.stack.Pop()
+}
+
+func (vm *VM) opGetGlobal() {
+	slot := int(vm.chunk.Code[vm.ip])
+	vm.ip++
+
+	if slot >= len(vm.globals) {
+		panic("global slot not initialized")
+	}
+
+	vm.stack.Push(vm.globals[slot])
 }
 
 func (vm *VM) readUint16() uint16 {

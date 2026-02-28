@@ -25,6 +25,8 @@ const (
 
 	OP_JUMP
 	OP_JUMP_IF_FALSE
+	OP_DEFINE_GLOBAL
+	OP_GET_GLOBAL
 )
 
 func (op OpCode) String() string {
@@ -67,6 +69,10 @@ func (op OpCode) String() string {
 		return "OP_JUMP"
 	case OP_JUMP_IF_FALSE:
 		return "OP_JUMP_IF_FALSE"
+	case OP_DEFINE_GLOBAL:
+		return "OP_DEFINE_GLOBAL"
+	case OP_GET_GLOBAL:
+		return "OP_GET_GLOBAL"
 	default:
 		return "OP_UNKNOWN"
 	}
