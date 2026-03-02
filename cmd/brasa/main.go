@@ -16,7 +16,7 @@ func main() {
 
 	sourceCode := `
 	a int = 2 * 5 
-	b int = 4 - 3
+	b int = 6 - 3
 	c int = ((a + b) * 3 - 4) * 2
 	c
 	`
