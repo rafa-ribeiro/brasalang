@@ -1,19 +1,24 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/rafa-ribeiro/brasalang/internal/bytecode"
 	"github.com/rafa-ribeiro/brasalang/internal/value"
 )
 
-// stack -> Store the values in execution
-// ip -> Points to the current bytecode
-// chunck -> Holds the program (or block of code) in execution
+type callFrame struct {
+	returnIP int // Where to return after function call
+	base     int // Base index in the stack for this function's local variables
+	fnIndex  int // Index of the function in execution
+}
 
 type VM struct {
-	stack   Stack
-	ip      int // Instruction Pointer
-	chunk   *bytecode.Chunk
-	globals []value.Value
+	stack   Stack           // Store the values in execution
+	ip      int             // Points to the current bytecode instruction being executed
+	chunk   *bytecode.Chunk // Current chunk of bytecode (or block of code) being executed
+	globals []value.Value   // Global variables storage
+	frames  []callFrame     // Call stack frames for function calls
 }
 
 func New() *VM {
@@ -23,6 +28,7 @@ func New() *VM {
 func (vm *VM) Run(chunk *bytecode.Chunk) {
 	vm.chunk = chunk
 	vm.ip = 0
+	vm.frames = vm.frames[:0]
 
 	for vm.ip < len(vm.chunk.Code) {
 
@@ -90,6 +96,18 @@ func (vm *VM) Run(chunk *bytecode.Chunk) {
 		case bytecode.OP_GET_GLOBAL:
 			vm.opGetGlobal()
 
+		case bytecode.OP_DEFINE_LOCAL:
+			vm.opDefineLocal()
+
+		case bytecode.OP_GET_LOCAL:
+			vm.opGetLocal()
+
+		case bytecode.OP_CALL:
+			vm.opCall()
+
+		case bytecode.OP_RETURN:
+			vm.opReturn()
+
 		case bytecode.OP_POP:
 			vm.stack.Pop()
 
@@ -139,8 +157,7 @@ func (vm *VM) opNot() {
 
 // TODO rafael: Change this to implement short-circuit
 func (vm *VM) binaryBoolOp(op func(bool, bool) bool) {
-	b := vm.stack.Pop()
-	a := vm.stack.Pop()
+	b, a := vm.stack.Pop(), vm.stack.Pop()
 
 	if a.Kind != value.BoolKind || b.Kind != value.BoolKind {
 		panic("Boolean operation requires bool operands")
@@ -189,6 +206,65 @@ func (vm *VM) opGetGlobal() {
 	}
 
 	vm.stack.Push(vm.globals[slot])
+}
+
+func (vm *VM) opDefineLocal() {
+	slot := int(vm.chunk.Code[vm.ip])
+	vm.ip++
+	if len(vm.frames) == 0 {
+		panic("local declaration outside function")
+	}
+	frame := vm.frames[len(vm.frames)-1]
+	idx := frame.base + slot
+	v := vm.stack.Pop()
+
+	if idx >= vm.stack.Size() {
+		missing := idx + 1 - vm.stack.Size()
+		vm.stack.PushAll(make([]value.Value, missing))
+	}
+
+	vm.stack.Set(idx, v)
+}
+
+func (vm *VM) opGetLocal() {
+	slot := int(vm.chunk.Code[vm.ip])
+	vm.ip++
+	frame := vm.frames[len(vm.frames)-1]
+	vm.stack.Push(vm.stack.Get(frame.base + slot))
+}
+
+func (vm *VM) opCall() {
+	fnIndex := int(vm.chunk.Code[vm.ip])
+	argc := int(vm.chunk.Code[vm.ip+1])
+	vm.ip += 2
+
+	fn := vm.chunk.Functions[fnIndex]
+	if argc != int(fn.Arity) {
+		panic(fmt.Sprintf("function %s expects %d args, got %d", fn.Name, fn.Arity, argc))
+	}
+
+	base := vm.stack.Size() - argc
+	vm.frames = append(vm.frames, callFrame{returnIP: vm.ip, base: base, fnIndex: fnIndex})
+	for i := argc; i < int(fn.LocalCount); i++ {
+		vm.stack.Push(value.Value{})
+	}
+	vm.ip = int(fn.Entry)
+}
+
+func (vm *VM) opReturn() {
+	ret := vm.stack.Pop()
+	if len(vm.frames) == 0 {
+		// Returning from main function, just push the value and exit
+		vm.stack.Push(ret)
+		vm.ip = len(vm.chunk.Code)
+		return
+	}
+
+	frame := vm.frames[len(vm.frames)-1]
+	vm.frames = vm.frames[:len(vm.frames)-1] // pop the call frame
+	vm.stack.Truncate(frame.base)            // Remove every thing that belongs to the executed function from the stack
+	vm.stack.Push(ret)                       // Push the return value of the function to the stack for the caller to use
+	vm.ip = frame.returnIP                   // Return to the instruction after the call
 }
 
 func (vm *VM) readUint16() uint16 {

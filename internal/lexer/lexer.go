@@ -45,6 +45,8 @@ func (l *Lexer) NextToken() token.Token {
 		return token.Token{Type: token.LBRACE, Lexeme: "{", Position: start}
 	case '}':
 		return token.Token{Type: token.RBRACE, Lexeme: "}", Position: start}
+	case ',':
+		return token.Token{Type: token.COMMA, Lexeme: ",", Position: start}
 	case '+':
 		return token.Token{Type: token.PLUS, Lexeme: "+", Position: start}
 	case '-':

@@ -78,6 +78,18 @@ func (node *BinaryExpr) Pos() token.Position {
 
 func (node *BinaryExpr) exprNode() {}
 
+// CallExpr represents a function call
+type CallExpr struct {
+	Callee    token.Token // the function to be called
+	Arguments []Expr
+}
+
+func (node *CallExpr) Pos() token.Position {
+	return node.Callee.Position
+}
+
+func (node *CallExpr) exprNode() {}
+
 type ExprStmt struct {
 	Expression Expr
 	Semicolon  token.Token
@@ -111,3 +123,37 @@ func (node *BlockStmt) Pos() token.Position {
 }
 
 func (node *BlockStmt) stmtNode() {}
+
+// ReturnStmt represents the keyword return used in functions
+type ReturnStmt struct {
+	Return token.Token
+	Value  Expr
+}
+
+func (node *ReturnStmt) Pos() token.Position {
+	return node.Return.Position
+}
+
+func (node *ReturnStmt) stmtNode() {}
+
+// Param defines a function parameter
+type Param struct {
+	Name token.Token
+	Type token.Token
+}
+
+// FuncDeclStmt represents a function definition
+type FuncDeclStmt struct {
+	DefToken   token.Token
+	Name       token.Token
+	Params     []Param
+	ReturnType token.Token
+	Body       *BlockStmt
+	Private    bool
+}
+
+func (node *FuncDeclStmt) Pos() token.Position {
+	return node.DefToken.Position
+}
+
+func (node *FuncDeclStmt) stmtNode() {}

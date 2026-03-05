@@ -2,12 +2,15 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"github.com/rafa-ribeiro/brasalang/internal/ast"
 	"github.com/rafa-ribeiro/brasalang/internal/lexer"
 	"github.com/rafa-ribeiro/brasalang/internal/token"
 )
+
+var snakeCaseRegex = regexp.MustCompile(`^_?[a-z][a-z0-9_]*$`)
 
 type Parser struct {
 	tokens []token.Token
@@ -54,11 +57,78 @@ func (p *Parser) parseStatement() ast.Stmt {
 	switch {
 	case p.check(token.LBRACE):
 		return p.parseBlockStatement()
+	case p.check(token.DEF):
+		return p.parseFuncDeclStatement()
+	case p.check(token.RETURN):
+		return p.parseReturnStatement()
 	case p.isVarDeclStart():
 		return p.parseVarDeclStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
+}
+
+func (p *Parser) parseFuncDeclStatement() ast.Stmt {
+	defTok, _ := p.expect(token.DEF, "expected 'def'")
+
+	nameTok, ok := p.expect(token.IDENT, "expected function name")
+	if !ok {
+		return nil
+	}
+
+	if !snakeCaseRegex.MatchString(nameTok.Lexeme) {
+		p.errs = append(p.errs, fmt.Errorf("function %q must be snake_case at %d:%d", nameTok.Lexeme, nameTok.Position.Line, nameTok.Position.Column))
+		return nil
+	}
+
+	if _, ok := p.expect(token.LPAREN, "expected '(' after function name"); !ok {
+		return nil
+	}
+
+	params := make([]ast.Param, 0)
+	for !p.check(token.RPAREN) && !p.check(token.EOF) {
+		paramName, ok := p.expect(token.IDENT, "expected parameter name")
+		if !ok {
+			return nil
+		}
+		paramType, ok := p.expect(token.IDENT, "expected parameter type")
+		if !ok {
+			return nil
+		}
+		params = append(params, ast.Param{Name: paramName, Type: paramType})
+
+		if p.check(token.COMMA) {
+			p.advance()
+			continue
+		}
+		break
+	}
+
+	if _, ok := p.expect(token.RPAREN, "expected ')' after parameters"); !ok {
+		return nil
+	}
+
+	returnType, ok := p.expect(token.IDENT, "expected return type")
+	if !ok {
+		return nil
+	}
+
+	bodyStmt := p.parseBlockStatement()
+	if bodyStmt == nil {
+		return nil
+	}
+	body := bodyStmt.(*ast.BlockStmt)
+
+	return &ast.FuncDeclStmt{DefToken: defTok, Name: nameTok, Params: params, ReturnType: returnType, Body: body, Private: len(nameTok.Lexeme) > 0 && nameTok.Lexeme[0] == '_'}
+}
+
+func (p *Parser) parseReturnStatement() ast.Stmt {
+	retTok, _ := p.expect(token.RETURN, "expected 'return'")
+	value := p.parseExpression()
+	if value == nil {
+		return nil
+	}
+	return &ast.ReturnStmt{Return: retTok, Value: value}
 }
 
 func (p *Parser) isVarDeclStart() bool {
@@ -235,7 +305,47 @@ func (p *Parser) parseUnary() ast.Expr {
 		return &ast.UnaryExpr{Operator: op, Right: right}
 	}
 
-	return p.parsePrimary()
+	return p.parseCall()
+}
+
+func (p *Parser) parseCall() ast.Expr {
+	expr := p.parsePrimary()
+	if expr == nil {
+		return nil
+	}
+
+	for p.check(token.LPAREN) {
+		ident, ok := expr.(*ast.Identifier)
+		if !ok {
+			p.errs = append(p.errs, fmt.Errorf("Only function identifiers can be called at %d:%d", p.peek().Position.Line, p.peek().Position.Column))
+			return nil
+		}
+
+		p.advance() // (
+		args := make([]ast.Expr, 0)
+		for !p.check(token.RPAREN) && !p.check(token.EOF) {
+			arg := p.parseExpression()
+			if arg == nil {
+				return nil
+			}
+			args = append(args, arg)
+
+			if p.check(token.COMMA) {
+				p.advance()
+				continue
+			}
+			break
+		}
+
+		if _, ok := p.expect(token.RPAREN, "expected ')' after arguments"); !ok {
+			return nil
+		}
+
+		expr = &ast.CallExpr{Callee: ident.Token, Arguments: args}
+	}
+
+	return expr
+
 }
 
 func (p *Parser) parsePrimary() ast.Expr {
@@ -276,7 +386,11 @@ func (p *Parser) parsePrimary() ast.Expr {
 
 func (p *Parser) synchronize() {
 	for !p.check(token.EOF) {
-		if p.previous().Type == token.NEWLINE || p.check(token.RBRACE) {
+		if p.previous().Type == token.NEWLINE {
+			return
+		}
+		if p.check(token.RBRACE) {
+			p.advance()
 			return
 		}
 		p.advance()

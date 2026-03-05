@@ -18,7 +18,7 @@ func (c *Chunk) Disassemble() string {
 		i++
 
 		switch op {
-		case OP_CONST, OP_DEFINE_GLOBAL, OP_GET_GLOBAL:
+		case OP_CONST, OP_DEFINE_GLOBAL, OP_GET_GLOBAL, OP_DEFINE_LOCAL, OP_GET_LOCAL:
 			if i >= len(c.Code) {
 				out.WriteString("<missing operand>\n")
 				continue
@@ -36,6 +36,17 @@ func (c *Chunk) Disassemble() string {
 			}
 
 			fmt.Fprintf(&out, "%d\n", idx)
+
+		case OP_CALL:
+			if i+1 >= len(c.Code) {
+				out.WriteString("<missing call operands>\n")
+				continue
+			}
+
+			fnIdx := c.Code[i]
+			argc := c.Code[i+1]
+			i += 2
+			fmt.Fprintf(&out, "fn=%d argc=%d\n", fnIdx, argc)
 
 		case OP_JUMP, OP_JUMP_IF_FALSE:
 			if i+1 >= len(c.Code) {

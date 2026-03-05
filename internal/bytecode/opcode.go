@@ -27,6 +27,10 @@ const (
 	OP_JUMP_IF_FALSE
 	OP_DEFINE_GLOBAL
 	OP_GET_GLOBAL
+	OP_DEFINE_LOCAL // define a local variable (used in function bodies)
+	OP_GET_LOCAL    // get a local variable (used in function bodies)
+	OP_CALL         // call a function (used in function bodies)
+	OP_RETURN       // return from a function (used in function bodies)
 )
 
 func (op OpCode) String() string {
@@ -73,6 +77,14 @@ func (op OpCode) String() string {
 		return "OP_DEFINE_GLOBAL"
 	case OP_GET_GLOBAL:
 		return "OP_GET_GLOBAL"
+	case OP_DEFINE_LOCAL:
+		return "OP_DEFINE_LOCAL"
+	case OP_GET_LOCAL:
+		return "OP_GET_LOCAL"
+	case OP_CALL:
+		return "OP_CALL"
+	case OP_RETURN:
+		return "OP_RETURN"
 	default:
 		return "OP_UNKNOWN"
 	}

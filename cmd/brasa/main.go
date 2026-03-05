@@ -12,13 +12,18 @@ import (
 func main() {
 	fmt.Println("Brasa VM starting...")
 
-	// sourceCode := "(1 + 2) * 3 == 9"
-
 	sourceCode := `
+
+	def double(x int) int {
+		return x * 2
+	}
+
 	a int = 2 * 5 
 	b int = 6 - 3
 	c int = ((a + b) * 3 - 4) * 2
-	c
+	
+	r int = double(c)
+	r 
 	`
 
 	p := parser.NewFromSource(sourceCode)

@@ -7,6 +7,16 @@ const JumpInstructionOperandWidth int = 2
 type Chunk struct {
 	Code      []byte
 	Constants []value.Value
+	Functions []FunctionMeta
+}
+
+// FunctionMeta represents the required information to execute a specific function inside the VM
+type FunctionMeta struct {
+	Name       string // Function name
+	Arity      byte   // Number of arguments
+	Entry      uint16 // Index of the bytecode (Chunk.Code) where the function starts
+	LocalCount byte   // Count of local required variables
+	Private    bool   // Visibility
 }
 
 // Write the provided OpCode to the Chunk

@@ -87,3 +87,29 @@ func TestParseExpressionPrecedence(t *testing.T) {
 		t.Fatalf("expected right operator '*', got %s", rightMul.Operator.Type)
 	}
 }
+
+func TestParseFunctionDeclarationAndCall(t *testing.T) {
+	p := NewFromSource("def sum(a int, b int) int {\n  return a + b\n}\nsum(1, 2)\n")
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("unexpected parse errors: %v", p.Errors())
+	}
+
+	fn, ok := program.Statements[0].(*ast.FuncDeclStmt)
+	if !ok {
+		t.Fatalf("expected FuncDeclStmt, got %T", program.Statements[0])
+	}
+	if fn.Name.Lexeme != "sum" || len(fn.Params) != 2 {
+		t.Fatalf("unexpected function declaration: %#v", fn)
+	}
+
+	stmt := program.Statements[1].(*ast.ExprStmt)
+	call, ok := stmt.Expression.(*ast.CallExpr)
+	if !ok {
+		t.Fatalf("expected CallExpr, got %T", stmt.Expression)
+	}
+	if call.Callee.Lexeme != "sum" || len(call.Arguments) != 2 {
+		t.Fatalf("unexpected function call: %#v", call)
+	}
+}

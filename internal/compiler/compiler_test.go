@@ -54,6 +54,22 @@ func TestCompileFailsForUndeclaredIdentifier(t *testing.T) {
 	}
 }
 
+func TestCompileAndRunFunctionCallWithLocalsAndGlobals(t *testing.T) {
+	srcCode := `
+	base int = 10
+	def sum_with_base(a int, b int) int {
+		tmp int = a + b
+		return tmp + base
+	}
+	sum_with_base(1, 2)
+	`
+
+	result := compileAndRun(t, srcCode)
+	if result.Kind != value.IntKind || result.I != 13 {
+		t.Fatalf("unexpected result: got=%v", result)
+	}
+}
+
 func compileAndRun(t *testing.T, src string) value.Value {
 	t.Helper()
 
