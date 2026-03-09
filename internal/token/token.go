@@ -19,6 +19,7 @@ const (
 	ELSE   Type = "ELSE"
 	DEF    Type = "DEF"
 	RETURN Type = "RETURN"
+	NIL    Type = "NIL"
 
 	// Delimiters
 	LPAREN Type = "LPAREN"
@@ -26,6 +27,7 @@ const (
 	LBRACE Type = "LBRACE"
 	RBRACE Type = "RBRACE"
 	COMMA  Type = "COMMA"
+	ARROW  Type = "ARROW"
 
 	// Operators
 	PLUS        Type = "PLUS"
@@ -62,6 +64,7 @@ var keywords = map[string]Type{
 	"false":  FALSE,
 	"def":    DEF,
 	"return": RETURN,
+	"nil":    NIL,
 }
 
 func LookupIdent(ident string) Type {

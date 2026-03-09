@@ -50,6 +50,9 @@ func (l *Lexer) NextToken() token.Token {
 	case '+':
 		return token.Token{Type: token.PLUS, Lexeme: "+", Position: start}
 	case '-':
+		if l.match('>') {
+			return token.Token{Type: token.ARROW, Lexeme: "->", Position: start}
+		}
 		return token.Token{Type: token.MINUS, Lexeme: "-", Position: start}
 	case '*':
 		return token.Token{Type: token.STAR, Lexeme: "*", Position: start}

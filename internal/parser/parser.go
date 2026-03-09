@@ -108,9 +108,36 @@ func (p *Parser) parseFuncDeclStatement() ast.Stmt {
 		return nil
 	}
 
-	returnType, ok := p.expect(token.IDENT, "expected return type")
-	if !ok {
-		return nil
+	returnTypes := make([]token.Token, 0)
+	if p.check(token.ARROW) {
+		p.advance()
+
+		if p.check(token.LPAREN) {
+			p.advance()
+			for {
+				typ, ok := p.expect(token.IDENT, "expected return type")
+				if !ok {
+					return nil
+				}
+				returnTypes = append(returnTypes, typ)
+
+				if p.check(token.COMMA) {
+					p.advance()
+					continue
+				}
+				break
+			}
+
+			if _, ok := p.expect(token.RPAREN, "expected ')' after return types"); !ok {
+				return nil
+			}
+		} else {
+			typ, ok := p.expect(token.IDENT, "expected return type")
+			if !ok {
+				return nil
+			}
+			returnTypes = append(returnTypes, typ)
+		}
 	}
 
 	bodyStmt := p.parseBlockStatement()
@@ -119,16 +146,34 @@ func (p *Parser) parseFuncDeclStatement() ast.Stmt {
 	}
 	body := bodyStmt.(*ast.BlockStmt)
 
-	return &ast.FuncDeclStmt{DefToken: defTok, Name: nameTok, Params: params, ReturnType: returnType, Body: body, Private: len(nameTok.Lexeme) > 0 && nameTok.Lexeme[0] == '_'}
+	return &ast.FuncDeclStmt{DefToken: defTok, Name: nameTok, Params: params, ReturnTypes: returnTypes, Body: body, Private: len(nameTok.Lexeme) > 0 && nameTok.Lexeme[0] == '_'}
 }
 
 func (p *Parser) parseReturnStatement() ast.Stmt {
 	retTok, _ := p.expect(token.RETURN, "expected 'return'")
-	value := p.parseExpression()
-	if value == nil {
-		return nil
+
+	values := make([]ast.Expr, 0)
+
+	if p.check(token.NEWLINE) || p.check(token.RBRACE) || p.check(token.EOF) {
+		return &ast.ReturnStmt{Return: retTok, Values: values}
 	}
-	return &ast.ReturnStmt{Return: retTok, Value: value}
+
+	for {
+		value := p.parseExpression()
+		if value == nil {
+			return nil
+		}
+		values = append(values, value)
+
+		if p.check(token.COMMA) {
+			p.advance()
+			continue
+		}
+		break
+	}
+
+	return &ast.ReturnStmt{Return: retTok, Values: values}
+
 }
 
 func (p *Parser) isVarDeclStart() bool {
@@ -375,6 +420,9 @@ func (p *Parser) parsePrimary() ast.Expr {
 	case token.FALSE:
 		p.advance()
 		return &ast.BoolLiteral{Token: tok, Value: false}
+	case token.NIL:
+		p.advance()
+		return &ast.NilLiteral{Token: tok}
 	case token.IDENT:
 		p.advance()
 		return &ast.Identifier{Token: tok, Name: tok.Lexeme}

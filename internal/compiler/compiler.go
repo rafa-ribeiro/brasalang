@@ -74,7 +74,7 @@ func (c *Compiler) Compile(program *ast.Program) (*bytecode.Chunk, error) {
 	chunk.PatchJump(jumpPos)
 
 	for i, stmt := range mainStmts {
-		if err := c.emitStmt(chunk, stmt, nil); err != nil {
+		if err := c.emitStmt(chunk, stmt, nil, nil); err != nil {
 			return nil, err
 		}
 
@@ -98,7 +98,7 @@ func (c *Compiler) emitFunction(chunk *bytecode.Chunk, fn *ast.FuncDeclStmt) (by
 	entry := uint16(len(chunk.Code))
 	localCount := byte(len(locals))
 	for i, stmt := range fn.Body.Statements {
-		if err := c.emitStmt(chunk, stmt, locals); err != nil {
+		if err := c.emitStmt(chunk, stmt, locals, fn); err != nil {
 			return bytecode.FunctionMeta{}, fmt.Errorf("in function %s: %w", fn.Name.Lexeme, err)
 		}
 		if i < len(fn.Body.Statements)-1 {
@@ -108,14 +108,17 @@ func (c *Compiler) emitFunction(chunk *bytecode.Chunk, fn *ast.FuncDeclStmt) (by
 		}
 	}
 
-	// default return value when no explicit return exists.
-	chunk.WriteConst(value.NewInt(0))
-	chunk.Write(bytecode.OP_RETURN)
+	if len(fn.ReturnTypes) == 0 {
+		chunk.WriteConst(value.NewNil())
+		chunk.Write(bytecode.OP_RETURN)
+	} else {
+		chunk.Write(bytecode.OP_RUNTIME_ERROR)
+	}
 
 	return bytecode.FunctionMeta{Name: fn.Name.Lexeme, Arity: byte(len(fn.Params)), Entry: entry, LocalCount: localCount, Private: fn.Private}, nil
 }
 
-func (c *Compiler) emitStmt(chunk *bytecode.Chunk, stmt ast.Stmt, locals map[string]byte) error {
+func (c *Compiler) emitStmt(chunk *bytecode.Chunk, stmt ast.Stmt, locals map[string]byte, fn *ast.FuncDeclStmt) error {
 	switch node := stmt.(type) {
 	case *ast.ExprStmt:
 		return c.emitExpr(chunk, node.Expression, locals)
@@ -124,9 +127,34 @@ func (c *Compiler) emitStmt(chunk *bytecode.Chunk, stmt ast.Stmt, locals map[str
 		if locals == nil {
 			return fmt.Errorf("return statement is only allowed inside functions")
 		}
-		if err := c.emitExpr(chunk, node.Value, locals); err != nil {
-			return err
+
+		if len(fn.ReturnTypes) == 0 {
+			if len(node.Values) > 0 {
+				return fmt.Errorf("void function %q cannot return a value", fn.Name.Lexeme)
+			}
+			chunk.WriteConst(value.NewNil())
+			chunk.Write(bytecode.OP_RETURN)
+			return nil
 		}
+
+		if len(node.Values) == 0 {
+			return fmt.Errorf("function %q return expects %d value(s)", fn.Name.Lexeme, len(fn.ReturnTypes))
+		}
+		if len(node.Values) != len(fn.ReturnTypes) {
+			return fmt.Errorf("function %q return expects %d value(s), got %d", fn.Name.Lexeme, len(fn.ReturnTypes), len(node.Values))
+		}
+
+		for _, retExpr := range node.Values {
+			if err := c.emitExpr(chunk, retExpr, locals); err != nil {
+				return err
+			}
+		}
+
+		if len(node.Values) > 1 {
+			chunk.Write(bytecode.OP_BUILD_TUPLE)
+			chunk.WriteByte(byte(len(node.Values)))
+		}
+
 		chunk.Write(bytecode.OP_RETURN)
 		return nil
 
@@ -177,6 +205,10 @@ func (c *Compiler) emitExpr(chunk *bytecode.Chunk, expr ast.Expr, locals map[str
 		} else {
 			chunk.Write(bytecode.OP_FALSE)
 		}
+		return nil
+
+	case *ast.NilLiteral:
+		chunk.WriteConst(value.NewNil())
 		return nil
 
 	case *ast.Identifier:

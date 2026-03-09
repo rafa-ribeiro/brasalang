@@ -35,3 +35,23 @@ func TestTokensBasicProgram(t *testing.T) {
 		}
 	}
 }
+
+func TestTokensArrowAndNil(t *testing.T) {
+	l := New("def noop() -> int {\n return nil\n}\n")
+	got := l.Tokens()
+
+	foundArrow := false
+	foundNil := false
+	for _, tok := range got {
+		if tok.Type == token.ARROW {
+			foundArrow = true
+		}
+		if tok.Type == token.NIL {
+			foundNil = true
+		}
+	}
+
+	if !foundArrow || !foundNil {
+		t.Fatalf("expected arrow and nil tokens, got: %#v", got)
+	}
+}

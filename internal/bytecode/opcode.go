@@ -27,10 +27,12 @@ const (
 	OP_JUMP_IF_FALSE
 	OP_DEFINE_GLOBAL
 	OP_GET_GLOBAL
-	OP_DEFINE_LOCAL // define a local variable (used in function bodies)
-	OP_GET_LOCAL    // get a local variable (used in function bodies)
-	OP_CALL         // call a function (used in function bodies)
-	OP_RETURN       // return from a function (used in function bodies)
+	OP_DEFINE_LOCAL  // define a local variable (used in function bodies)
+	OP_GET_LOCAL     // get a local variable (used in function bodies)
+	OP_CALL          // call a function (used in function bodies)
+	OP_BUILD_TUPLE   // build tuple from N top stack values
+	OP_RUNTIME_ERROR // raise a runtime error with a message (used in function bodies)
+	OP_RETURN        // return from a function (used in function bodies)
 )
 
 func (op OpCode) String() string {
@@ -83,6 +85,10 @@ func (op OpCode) String() string {
 		return "OP_GET_LOCAL"
 	case OP_CALL:
 		return "OP_CALL"
+	case OP_BUILD_TUPLE:
+		return "OP_BUILD_TUPLE"
+	case OP_RUNTIME_ERROR:
+		return "OP_RUNTIME_ERROR"
 	case OP_RETURN:
 		return "OP_RETURN"
 	default:

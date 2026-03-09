@@ -14,8 +14,12 @@ func main() {
 
 	sourceCode := `
 
-	def double(x int) int {
+	def double(x int) -> int {
 		return x * 2
+	}
+
+	def triple(x int) {
+		x * 3
 	}
 
 	a int = 2 * 5 

@@ -44,6 +44,16 @@ func (node *BoolLiteral) Pos() token.Position {
 
 func (node *BoolLiteral) exprNode() {}
 
+type NilLiteral struct {
+	Token token.Token
+}
+
+func (node *NilLiteral) Pos() token.Position {
+	return node.Token.Position
+}
+
+func (node *NilLiteral) exprNode() {}
+
 type Identifier struct {
 	Token token.Token
 	Name  string
@@ -127,7 +137,7 @@ func (node *BlockStmt) stmtNode() {}
 // ReturnStmt represents the keyword return used in functions
 type ReturnStmt struct {
 	Return token.Token
-	Value  Expr
+	Values []Expr
 }
 
 func (node *ReturnStmt) Pos() token.Position {
@@ -144,12 +154,12 @@ type Param struct {
 
 // FuncDeclStmt represents a function definition
 type FuncDeclStmt struct {
-	DefToken   token.Token
-	Name       token.Token
-	Params     []Param
-	ReturnType token.Token
-	Body       *BlockStmt
-	Private    bool
+	DefToken    token.Token
+	Name        token.Token
+	Params      []Param
+	ReturnTypes []token.Token
+	Body        *BlockStmt
+	Private     bool
 }
 
 func (node *FuncDeclStmt) Pos() token.Position {

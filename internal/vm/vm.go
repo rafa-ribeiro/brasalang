@@ -105,6 +105,12 @@ func (vm *VM) Run(chunk *bytecode.Chunk) {
 		case bytecode.OP_CALL:
 			vm.opCall()
 
+		case bytecode.OP_BUILD_TUPLE:
+			vm.opBuildTuple()
+
+		case bytecode.OP_RUNTIME_ERROR:
+			panic("function reached end without explicit return")
+
 		case bytecode.OP_RETURN:
 			vm.opReturn()
 
@@ -249,6 +255,18 @@ func (vm *VM) opCall() {
 		vm.stack.Push(value.Value{})
 	}
 	vm.ip = int(fn.Entry)
+}
+
+func (vm *VM) opBuildTuple() {
+	count := int(vm.chunk.Code[vm.ip])
+	vm.ip++
+
+	items := make([]value.Value, count)
+	for i := count - 1; i >= 0; i-- {
+		items[i] = vm.stack.Pop()
+	}
+
+	vm.stack.Push(value.NewTuple(items))
 }
 
 func (vm *VM) opReturn() {

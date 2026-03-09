@@ -89,7 +89,7 @@ func TestParseExpressionPrecedence(t *testing.T) {
 }
 
 func TestParseFunctionDeclarationAndCall(t *testing.T) {
-	p := NewFromSource("def sum(a int, b int) int {\n  return a + b\n}\nsum(1, 2)\n")
+	p := NewFromSource("def sum(a int, b int) -> int {\n  return a + b\n}\nsum(1, 2)\n")
 	program := p.ParseProgram()
 
 	if len(p.Errors()) > 0 {
@@ -100,7 +100,7 @@ func TestParseFunctionDeclarationAndCall(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected FuncDeclStmt, got %T", program.Statements[0])
 	}
-	if fn.Name.Lexeme != "sum" || len(fn.Params) != 2 {
+	if fn.Name.Lexeme != "sum" || len(fn.Params) != 2 || len(fn.ReturnTypes) != 1 {
 		t.Fatalf("unexpected function declaration: %#v", fn)
 	}
 
@@ -111,5 +111,38 @@ func TestParseFunctionDeclarationAndCall(t *testing.T) {
 	}
 	if call.Callee.Lexeme != "sum" || len(call.Arguments) != 2 {
 		t.Fatalf("unexpected function call: %#v", call)
+	}
+}
+
+func TestParseFunctionWithoutReturnTypeAndBareReturn(t *testing.T) {
+	p := NewFromSource("def noop() {\n  return\n}\n")
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("unexpected parse errors: %v", p.Errors())
+	}
+
+	fn := program.Statements[0].(*ast.FuncDeclStmt)
+	if len(fn.ReturnTypes) != 0 {
+		t.Fatalf("expected no return types, got %d", len(fn.ReturnTypes))
+	}
+
+	ret := fn.Body.Statements[0].(*ast.ReturnStmt)
+	if len(ret.Values) != 0 {
+		t.Fatalf("expected bare return, got %d values", len(ret.Values))
+	}
+}
+
+func TestParseMultipleReturnTypes(t *testing.T) {
+	p := NewFromSource("def pair(a int) -> (int, bool) {\n  return a, true\n}\n")
+	program := p.ParseProgram()
+
+	if len(p.Errors()) > 0 {
+		t.Fatalf("unexpected parse errors: %v", p.Errors())
+	}
+
+	fn := program.Statements[0].(*ast.FuncDeclStmt)
+	if got := len(fn.ReturnTypes); got != 2 {
+		t.Fatalf("expected 2 return types, got %d", got)
 	}
 }

@@ -18,7 +18,7 @@ func (c *Chunk) Disassemble() string {
 		i++
 
 		switch op {
-		case OP_CONST, OP_DEFINE_GLOBAL, OP_GET_GLOBAL, OP_DEFINE_LOCAL, OP_GET_LOCAL:
+		case OP_CONST, OP_DEFINE_GLOBAL, OP_GET_GLOBAL, OP_DEFINE_LOCAL, OP_GET_LOCAL, OP_BUILD_TUPLE:
 			if i >= len(c.Code) {
 				out.WriteString("<missing operand>\n")
 				continue
@@ -32,6 +32,11 @@ func (c *Chunk) Disassemble() string {
 					continue
 				}
 				fmt.Fprintf(&out, "%d (%s)\n", idx, c.Constants[idx])
+				continue
+			}
+
+			if op == OP_BUILD_TUPLE {
+				fmt.Fprintf(&out, "count=%d\n", idx)
 				continue
 			}
 
